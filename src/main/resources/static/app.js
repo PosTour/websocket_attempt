@@ -1,23 +1,122 @@
-const url = "ws://localhost:8081/websocket-attempt";
-const topic = "/topic/greetings";
-const app = "/app/hello";
+'use strict';
+const url = "ws://localhost:8080/spring-boot-tutorial";
+const topicUrl = "/topic/messages";
+const userUrl = "/topic/users";
+const appUsers = "/app/user";
 const client = new StompJs.Client({
     brokerURL: url
 });
 
+class User {
+    id;
+    username;
+
+    constructor(id, username) {
+        this.id = id;
+        this.username = username;
+    }
+};
+
+class Message {
+    user;
+    comment;
+    action;
+    timestamp;
+
+    constructor(user, comment, action, timestamp) {
+        this.user = user;
+        this.comment = comment;
+        this.action = action;
+        this.timestamp = timestamp;
+    }
+};
+
+var user;
+var message;
+var userName;
 var buttonConnect;
 var buttonDisConnect;
-var buttonSend;
 var conversation;
-var greetings;
 var formInput;
-var nameInput;
+var conversationDisplay;
+var usersList;
+var messagesList;
+var online;
+
+document.addEventListener("DOMContentLoaded", function() {
+    userName = document.getElementById("username");
+    usersList = document.getElementById("userslist");
+    buttonConnect = document.getElementById("connect");
+    buttonDisConnect = document.getElementById("disconnect");
+    conversationDisplay = document.getElementById("conversation");
+    online = document.getElementById("online");
+    messagesList = document.getElementById("messagesList");
+    formInput = document.getElementById("form");
+
+    buttonConnect.addEventListener("click", (e) => {
+        connect();
+        e.preventDefault();
+    });
+
+    buttonDisConnect.addEventListener("click", (e) => {
+        disconnect();
+        e.preventDefault();
+    });
+
+    userName.addEventListener("keyup", () => {
+        const userNameValue = userName.value;
+        if(!userNameValue.length == 0 && hasOnlyLettersAndNumbers(userNameValue)) {
+            buttonConnect.disabled = false;
+        } else {
+            buttonConnect.disabled = true;
+        }
+    });
+
+    formInput.addEventListener("submit", (e) => {
+        setConnected(false);
+        e.preventDefault()
+    });
+
+});
+
+window.addEventListener("beforeunload" , (e) => {
+    disconnect();
+    console.log("Browser closed " + e);
+});
+
+function connect() {
+    client.activate();
+    buttonConnect.disabled = true;
+    userName.disabled = true;
+    console.log('Connected');
+}
+
+function disconnect() {
+    client.deactivate();
+    buttonConnect.disabled = false;
+    userName.disabled = false;
+    setConnected(false);
+    online.innerHTML = "";
+    console.log('Disconnected');
+}
 
 client.onConnect = (frame) => {
     setConnected(true);
     console.log('Connected: ' + frame);
-    client.subscribe(topic, (greeting) => {
-        showGreeting(JSON.parse(greeting.body).content);
+    user = new User(uuidv4(), userName.value);
+    online.innerHTML = "<p>" + user.username + " you are online!</p>";
+
+    client.subscribe(topicUrl, (message) => {
+        showMessagesList(JSON.parse(message.body));
+    });
+
+    client.subscribe(userUrl, (usersList) => {
+        showUsers(JSON.parse(usersList.body));
+    });
+
+    client.publish({
+        destination: appUsers,
+        body: JSON.stringify(user)
     });
 };
 
@@ -31,7 +130,6 @@ client.onStompError = (frame) => {
 };
 
 function setConnected(connected) {
-    buttonConnect.disabled = connected;
     buttonDisConnect.disabled = !connected;
     if (connected) {
         conversationDisplay.style.display = "block";
@@ -39,48 +137,35 @@ function setConnected(connected) {
     else {
         conversationDisplay.style.display = "none";
     }
-    greetings.innerHTML = "";
+    messagesList.innerHTML = "";
+    usersList.innerHTML = "";
 }
 
-function connect() {
-    client.activate();
-    console.log('Connected');
+function showMessagesList(message) {
+    const date = new Date(message.timestamp);
+    messagesList.innerHTML += "<tr><td>" + message.user.username + " " + message.action + " " +  date.toLocaleString("nl-BE") + "</td></tr>";
 }
 
-function disconnect() {
-    client.deactivate();
-    setConnected(false);
-    console.log("Disconnected");
+function showUsers(users) {
+    usersList.innerHTML = "";
+    users.forEach( connectedUser => {
+        if(connectedUser.id == user.id) {
+            return;
+        }
+        usersList.innerHTML += "<p>" + connectedUser.username + "</p>";
+    })
 }
 
-function sendName() {
-    client.publish({
-        destination: app,
-        body: JSON.stringify({'name': nameInput.value})
-    });
+function hasOnlyLettersAndNumbers(string) {
+    const regex = /^[a-zA-Z0-9 ]+$/
+    return regex.test(string)
 }
 
-function showGreeting(message) {
-    greetings.innerHTML += "<tr><td>" + message + "</td></tr>";
+function uuidv4() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
+        .replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0,
+                v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
 }
-
-document.addEventListener("DOMContentLoaded", function() {
-    buttonConnect = document.getElementById("connect");
-    buttonDisConnect = document.getElementById("disconnect");
-    buttonSend = document.getElementById("send");
-    conversationDisplay = document.getElementById("conversation");
-    greetings = document.getElementById("greetings");
-    formInput = document.getElementById("form");
-    nameInput = document.getElementById("name");
-    buttonConnect.addEventListener("click", (e) => {
-        connect();
-        e.preventDefault();});
-    buttonDisConnect.addEventListener("click", (e) => {
-        disconnect();
-        e.preventDefault();});
-    buttonSend.addEventListener("click", (e) => {
-        sendName();
-        e.preventDefault();});
-    formInput.addEventListener("submit", (e) => e.preventDefault());
-    setConnected(false);
-});
