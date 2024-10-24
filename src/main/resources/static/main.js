@@ -1,5 +1,5 @@
 'use strict';
-const url = "ws://localhost:8080/spring-boot-tutorial";
+const url = "ws://localhost:8081/websocket-attempt";
 const topicUrl = "/topic/messages";
 const userUrl = "/topic/users";
 const appUsers = "/app/user";
@@ -64,8 +64,8 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     userName.addEventListener("keyup", () => {
-        const userNameValue = userName.value;
-        if(!userNameValue.length == 0 && hasOnlyLettersAndNumbers(userNameValue)) {
+        const userNameValue = userName.value.trim();
+        if (userNameValue.length > 0 && hasOnlyLettersAndNumbers(userNameValue)) {
             buttonConnect.disabled = false;
         } else {
             buttonConnect.disabled = true;
@@ -104,7 +104,7 @@ client.onConnect = (frame) => {
     setConnected(true);
     console.log('Connected: ' + frame);
     user = new User(uuidv4(), userName.value);
-    online.innerHTML = "<p>" + user.username + " you are online!</p>";
+    online.innerHTML = "<p>" + user.username + ", you are online!</p>";
 
     client.subscribe(topicUrl, (message) => {
         showMessagesList(JSON.parse(message.body));
