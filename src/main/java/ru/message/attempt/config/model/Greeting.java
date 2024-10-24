@@ -1,2 +1,3 @@
-package ru.message.attempt.config.model;public record Greeting() {
-}
+package ru.message.attempt.config.model;
+
+public record Greeting(String content) {}

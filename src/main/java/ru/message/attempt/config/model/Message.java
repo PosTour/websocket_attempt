@@ -1,2 +1,3 @@
-package ru.message.attempt.config.model;public class Message {
-}
+package ru.message.attempt.config.model;
+
+public record Message(String name) {}
