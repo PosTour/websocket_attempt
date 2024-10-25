@@ -1,9 +1,11 @@
 package ru.message.attempt.service;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import ru.message.attempt.model.User;
@@ -17,7 +19,7 @@ public class MemberStore {
         AtomicInteger serialId = new AtomicInteger(1);
         return store.stream()
                 .map(user -> new User(user.id(), serialId.getAndIncrement() + "", user.username()))
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     public List<User> filterMemberListByUser(List<User> memberList, User user) {
