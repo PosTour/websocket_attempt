@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Spring Boot Tutorial Web Chat</title>
+    <title>Web Chat</title>
     <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
     <link href="/main.css" rel="stylesheet">
     <script src="/main.js"></script>
@@ -10,7 +10,7 @@
 <body>
 <div class="header">
     <div class="center">
-        <h1>Spring Boot Tutorial</h1>
+        <h1>Websocket</h1>
         <h2>Web Chat</h2>
     </div>
 </div>
@@ -24,15 +24,24 @@
                 <button id="connect" type="submit" disabled="disabled">Connect</button>
                 <button id="disconnect" type="submit" disabled="disabled">Disconnect</button>
             </div>
-            <div id="online"></div>
         </form>
+        <div id="online"></div>
+        <div  class="row" id="sendmessage">
+            <form id="formsendmessage">
+                <div>
+                    <label id="messagelabel" class="row" for="send">Send a public message:</label>
+                    <input type="text" id="inputsendmessage" placeholder="Type your message here...">
+                    <button id="send" type="submit">Send</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
-<div class="members">
+<div class="members" id="memberslist">
     <p>Members List:</p>
-    <div id="userslist"></div>
+    <ul id="userslist"></ul>
 </div>
-<div class="messages">
+<div class="messages" id="messagelist">
     <p>Messages List:</p>
     <div id="conversation">
         <table>

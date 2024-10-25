@@ -1,9 +1,9 @@
 package ru.message.attempt.controller;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
@@ -17,13 +17,13 @@ import ru.message.attempt.model.Message;
 import ru.message.attempt.model.User;
 import ru.message.attempt.service.MemberStore;
 
+
 @Controller
 public class ChatController {
 
     private final MemberStore memberStore;
     private final SimpMessagingTemplate simpMessagingTemplate;
 
-    @Autowired
     public ChatController(MemberStore memberStore, SimpMessagingTemplate simpMessagingTemplate) {
         this.memberStore = memberStore;
         this.simpMessagingTemplate = simpMessagingTemplate;
@@ -31,14 +31,13 @@ public class ChatController {
 
     @MessageMapping("/user")
     public void getUsers(User user, SimpMessageHeaderAccessor headerAccessor) {
-        User newUser = new User(user.id(), user.username());
+        User newUser = new User(user.id(), null, user.username());
         headerAccessor.getSessionAttributes().put("user", newUser);
         memberStore.addMember(newUser);
-        if (!memberStore.getMembers().isEmpty()) {
-            simpMessagingTemplate.convertAndSend("/topic/users", memberStore.getMembers());
-        }
-        Message newMessage = new Message(newUser, null, Action.JOINED, Instant.now());
+        sendMembersList();
+        Message newMessage = new Message(new User(null, null, user.username()), null, null, Action.JOINED, Instant.now());
         simpMessagingTemplate.convertAndSend("/topic/messages", newMessage);
+
     }
 
     @EventListener
@@ -59,9 +58,29 @@ public class ChatController {
             return;
         }
         memberStore.removeMember(user);
-        simpMessagingTemplate.convertAndSend("/topic/users", memberStore.getMembers());
+        sendMembersList();
 
-        Message message = new Message(user, "", Action.LEFT, Instant.now());
+        Message message = new Message(new User(null, null, user.username()), null, "", Action.LEFT, Instant.now());
         simpMessagingTemplate.convertAndSend("/topic/messages", message);
+
+    }
+
+    @MessageMapping("/message")
+    public void getMessage(Message message) {
+        Message newMessage = new Message(new User(null, message.user().serialId(), message.user().username()), message.receiverId(), message.comment(), message.action(), Instant.now());
+        simpMessagingTemplate.convertAndSend("/topic/messages", newMessage);
+    }
+
+    @MessageMapping("/privatemessage")
+    public void getPrivateMessage(Message message) {
+        Message newMessage = new Message(new User(null, message.user().serialId(), message.user().username()), message.receiverId(), message.comment(), message.action(), Instant.now());
+        simpMessagingTemplate.convertAndSendToUser(memberStore.getMember(message.receiverId()).id(), "/topic/privatemessages", newMessage);
+
+    }
+
+    private void sendMembersList() {
+        List<User> memberList = memberStore.getMembersList();
+        memberList.forEach(
+                sendUser -> simpMessagingTemplate.convertAndSendToUser(sendUser.id(), "/topic/users", memberStore.filterMemberListByUser(memberList, sendUser)));
     }
 }
